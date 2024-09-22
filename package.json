@@ -1,0 +1,24 @@
+{
+  "name": "cloudflare-cache-monitor-worker",
+  "version": "0.1.0",
+  "description": "Bot to monitor cache purge requests and check the Last-Modified header.",
+  "main": "src/index.js",
+  "scripts": {
+    "publish": "wrangler publish",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --local",
+    "start": "wrangler dev",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "Rafael de Araujo <contato@codenz.com.br>",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "wrangler": "^3.78.7"
+  },
+  "dependencies": {
+    "hono": "^4.6.2",
+    "node-fetch": "^2.7.0"
+  }
+}
