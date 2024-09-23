@@ -45,12 +45,14 @@ app.post("/", async (c) => {
         url,
         status,
         lastModified,
+        purge_time,
       });
     } catch (error) {
       results.push({
         url,
         status: "Erro ao acessar a URL",
         error: error.message,
+        purge_time,
       });
     }
   }
