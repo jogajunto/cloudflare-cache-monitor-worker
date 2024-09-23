@@ -1,106 +1,106 @@
-// Define o tempo limite de 15 segundos para este arquivo de teste
-// Isso é necessário porque o Worker aguarda 5 segundos antes de processar as URLs
+// Sets a 15-second timeout for this test file
+// This is necessary because the Worker waits 5 seconds before processing the URLs
 jest.setTimeout(15000);
 
-// Importa as funções necessárias do pacote 'wrangler' e 'node-fetch'
-// - unstable_dev: para iniciar o Worker localmente em ambiente de teste
-// - getPlatformProxy: para simular o ambiente da plataforma Cloudflare
-// - fetch: para realizar requisições HTTP (se necessário)
+// Imports necessary functions from the 'wrangler' and 'node-fetch' packages
+// - unstable_dev: to start the Worker locally in a test environment
+// - getPlatformProxy: to simulate the Cloudflare platform environment
+// - fetch: to make HTTP requests (if needed)
 const { unstable_dev, getPlatformProxy } = require("wrangler");
 const fetch = require("node-fetch");
 
-// Declara a variável 'worker' que armazenará a instância do Worker
+// Declares the 'worker' variable to store the Worker instance
 let worker;
 
-// 'beforeAll' é uma função do Jest que é executada antes de todos os testes
+// 'beforeAll' is a Jest function that runs before all tests
 beforeAll(async () => {
   /**
-   * Obtém o proxy da plataforma Cloudflare
-   * Isso permite que o Worker interaja com a plataforma Cloudflare durante os testes
+   * Gets the Cloudflare platform proxy
+   * This allows the Worker to interact with the Cloudflare platform during tests
    */
   const platform = getPlatformProxy();
 
   /**
-   * Inicializa o Worker em ambiente de desenvolvimento para testes
-   * - 'src/index.js' é o caminho para o arquivo principal do Worker
-   * - As opções 'experimental' incluem configurações adicionais
+   * Initializes the Worker in development mode for testing
+   * - 'src/index.js' is the path to the Worker's main file
+   * - The 'experimental' options include additional configurations
    */
   worker = await unstable_dev("src/index.js", {
     experimental: {
-      disableExperimentalWarning: true, // Desabilita avisos experimentais
-      waitUntilExit: true, // Aguarda até que todas as operações assíncronas sejam concluídas
+      disableExperimentalWarning: true, // Disables experimental warnings
+      waitUntilExit: true, // Waits until all asynchronous operations are complete
     },
-    platform, // Passa o proxy da plataforma para o Worker
+    platform, // Passes the platform proxy to the Worker
   });
 
-  // Loga no console que o Worker foi iniciado
-  console.log("Worker iniciado para testes.");
+  // Logs to the console that the Worker has started
+  console.log("Worker started for testing.");
 });
 
-// 'afterAll' é uma função do Jest que é executada após todos os testes
+// 'afterAll' is a Jest function that runs after all tests
 afterAll(async () => {
-  // Encerra o Worker após os testes
+  // Stops the Worker after the tests
   await worker.stop();
 
-  // Loga no console que o Worker foi encerrado
-  console.log("Worker encerrado após os testes.");
+  // Logs to the console that the Worker has stopped
+  console.log("Worker stopped after testing.");
 });
 
-// Define um teste com a descrição fornecida
-test("Deve processar as URLs e retornar os resultados corretos", async () => {
-  // URL válida que retorna o cabeçalho Last-Modified
+// Defines a test with the provided description
+test("Should process the URLs and return the correct results", async () => {
+  // Valid URL that returns the Last-Modified header
   const testUrl = "https://www.example.com/";
 
-  // Obter o cabeçalho Last-Modified atual da URL
+  // Get the current Last-Modified header of the URL
   const headResponse = await fetch(testUrl, { method: "HEAD" });
   const lastModifiedHeader = headResponse.headers.get("Last-Modified");
 
   console.log("Last modified Time Header: ", lastModifiedHeader);
 
-  // Definir o purge_time como o timestamp atual
-  const purgeTime = Math.floor(Date.now() / 1000); // Tempo atual em segundos
+  // Set the purge_time as the current timestamp
+  const purgeTime = Math.floor(Date.now() / 1000); // Current time in seconds
 
-  // Cria um objeto com os dados de teste que serão enviados ao Worker
+  // Creates an object with test data that will be sent to the Worker
   const testData = {
     post_id: 123,
     purge_time: purgeTime,
     urls: [testUrl],
   };
 
-  // Loga os dados que serão enviados ao Worker
-  console.log("Enviando os seguintes dados ao Worker:", testData);
+  // Logs the data that will be sent to the Worker
+  console.log("Sending the following data to the Worker:", testData);
 
-  // Envia uma requisição POST para o Worker com os dados de teste
+  // Sends a POST request to the Worker with the test data
   const response = await worker.fetch("/", {
     method: "POST",
-    headers: { "Content-Type": "application/json" }, // Define o tipo de conteúdo como JSON
-    body: JSON.stringify(testData), // Converte os dados de teste para uma string JSON
+    headers: { "Content-Type": "application/json" }, // Sets content type as JSON
+    body: JSON.stringify(testData), // Converts the test data to a JSON string
   });
 
-  // Loga o status da resposta recebida do Worker
-  console.log("Resposta recebida do Worker com status:", response.status);
+  // Logs the status of the response received from the Worker
+  console.log("Response received from Worker with status:", response.status);
 
-  // Verifica se o status da resposta é 200 (OK)
+  // Verifies if the response status is 200 (OK)
   expect(response.status).toBe(200);
 
-  // Extrai o corpo da resposta e converte para um objeto JavaScript
+  // Extracts the response body and converts it to a JavaScript object
   const result = await response.json();
 
-  // Loga o resultado processado pelo Worker
-  console.log("Resultado processado pelo Worker:", result);
+  // Logs the result processed by the Worker
+  console.log("Result processed by Worker:", result);
 
-  // Verifica se o resultado contém a propriedade 'post_id' com o valor 123
+  // Verifies if the result contains the 'post_id' property with the value 123
   expect(result).toHaveProperty("post_id", 123);
 
-  // Verifica se 'results' é um array
+  // Verifies if 'results' is an array
   expect(Array.isArray(result.results)).toBe(true);
 
-  // Verifica se o primeiro elemento de 'results' tem a propriedade 'url' com o valor esperado
+  // Verifies if the first element of 'results' has the 'url' property with the expected value
   expect(result.results[0]).toHaveProperty("url", testUrl);
 
-  // Verifica se o status retornado é 'Atualizado após o purge'
-  expect(result.results[0]).toHaveProperty("status", "Atualizado após o purge");
+  // Verifies if the returned status is 'Updated after purge'
+  expect(result.results[0]).toHaveProperty("status", "Updated after purge");
 
-  // Opcional: Loga o status retornado para a URL testada
-  console.log("Status para a URL testada:", result.results[0].status);
+  // Optional: Logs the returned status for the tested URL
+  console.log("Status for the tested URL:", result.results[0].status);
 });
