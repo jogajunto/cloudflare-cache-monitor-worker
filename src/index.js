@@ -10,6 +10,7 @@ app.post("/", async (c) => {
   let data;
   try {
     data = await request.json();
+    console.log("Data received: ", data);
   } catch (e) {
     return c.text("Invalid request body", 400);
   }
