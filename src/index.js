@@ -34,10 +34,10 @@ app.post("/", async (c) => {
     return c.text("No URLs match the post_name", 400);
   }
 
-  // Wait a few seconds (20 seconds)
-  console.log("Wait a few 20 seconds...");
-  await new Promise((resolve) => setTimeout(resolve, 20000));
-  console.log("Wait 20 seconds completed...");
+  // Wait a few seconds (8 seconds)
+  console.log("Wait a few 8 seconds...");
+  await new Promise((resolve) => setTimeout(resolve, 8000));
+  console.log("Wait 8 seconds completed...");
 
   const results = [];
 
