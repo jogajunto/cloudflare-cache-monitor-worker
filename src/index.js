@@ -16,8 +16,14 @@ app.post("/", async (c) => {
 
   const { post_id, post_name, purge_time, urls } = data;
 
-  if (!urls || !purge_time || !post_name) {
-    return c.text("Insufficient data", 400);
+  if (!urls) {
+    return c.text("Insufficient data: 'urls' is missing or empty", 400);
+  }
+  if (!purge_time) {
+    return c.text("Insufficient data: 'purge_time' is missing or invalid", 400);
+  }
+  if (!post_name) {
+    return c.text("Insufficient data: 'post_name' is missing or empty", 400);
   }
 
   // Filtrar as URLs que contêm o post_name
