@@ -4,7 +4,15 @@ export class DiscordNotifier {
   static async send(message, env) {
     const DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL;
 
-    if (DISCORD_WEBHOOK_URL) {
+    if (!DISCORD_WEBHOOK_URL) {
+      throw new Error("DISCORD_WEBHOOK_URL não está definida!");
+    }
+
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
       const response = await fetch(DISCORD_WEBHOOK_URL, {
         method: "POST",
         headers: {
@@ -13,15 +21,30 @@ export class DiscordNotifier {
         body: JSON.stringify(message),
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        return response;
+      } else if (response.status === 429) {
+        // Rate limit excedido
+        const retryAfter = response.headers.get("Retry-After");
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000; // Tempo em milissegundos
+
+        console.warn(
+          `Rate limit excedido. Tentativa ${attempt} de ${maxRetries}. Aguardando ${waitTime}ms antes de tentar novamente.`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      } else {
+        // Outro erro
+        const errorText = await response.text();
         throw new Error(
-          `Erro ao enviar mensagem para o Discord: ${response.statusText}`
+          `Erro ao enviar mensagem para o Discord: ${response.status} ${response.statusText} - ${errorText}`
         );
       }
-      return response;
-    } else {
-      throw new Error("DISCORD_WEBHOOK_URL não está definida!");
     }
+
+    throw new Error(
+      `Falha ao enviar mensagem para o Discord após ${maxRetries} tentativas devido a rate limits.`
+    );
   }
 
   static createEmbed(options, env) {
