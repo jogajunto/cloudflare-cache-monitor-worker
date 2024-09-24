@@ -14,10 +14,17 @@ app.post("/", async (c) => {
     return c.text("Invalid request body", 400);
   }
 
-  const { post_id, purge_time, urls } = data;
+  const { post_id, post_name, purge_time, urls } = data;
 
-  if (!urls || !purge_time) {
+  if (!urls || !purge_time || !post_name) {
     return c.text("Insufficient data", 400);
+  }
+
+  // Filtrar as URLs que contêm o post_name
+  const filteredUrls = urls.filter((url) => url.includes(post_name));
+
+  if (filteredUrls.length === 0) {
+    return c.text("No URLs match the post_name", 400);
   }
 
   // Wait a few seconds (5 seconds)
@@ -25,7 +32,7 @@ app.post("/", async (c) => {
 
   const results = [];
 
-  for (const url of urls) {
+  for (const url of filteredUrls) {
     try {
       const response = await fetch(url);
       const lastModified = response.headers.get("Last-Modified");
@@ -64,43 +71,36 @@ app.post("/", async (c) => {
     (result) => result.status === "Updated after purge"
   );
 
+  // Preparar o embed para o Discord
+  const embedOptions = {
+    fields: results.map((result) => ({
+      name: result.url,
+      value: `Status: ${result.status}`,
+      inline: false,
+    })),
+    timestamp: new Date().toISOString(),
+  };
+
   if (!anyUpdated) {
     // No URL was updated after purge, send error message to Discord
-    const embed = DiscordNotifier.createEmbed(
-      {
-        title: `⚠️ Cache Purge Error for Post ID ${post_id}`,
-        description: "None of the URLs were updated after the purge.",
-        color: 15548997,
-        fields: results.map((result) => ({
-          name: result.url,
-          value: `Status: ${result.status}`,
-          inline: false,
-        })),
-        timestamp: new Date().toISOString(),
-      },
-      env
-    );
+    embedOptions.title = `🚧 Cache Purge Error for Post ID ${post_id}`;
+    embedOptions.description = "None of the URLs were updated after the purge.";
+    embedOptions.color = 15548997; // Red color
 
     try {
+      const embed = DiscordNotifier.createEmbed(embedOptions, env);
       await DiscordNotifier.send({ embeds: [embed] }, env);
     } catch (error) {
       console.error("Error sending message to Discord:", error);
     }
   } else {
-    const embed = DiscordNotifier.createEmbed(
-      {
-        title: `Cache Purge Success for Post ID ${post_id}`,
-        description: `${results.length} URLs were updated after the purge.`,
-        fields: results.map((result) => ({
-          name: result.url,
-          value: `Status: ${result.status}`,
-          inline: false,
-        })),
-      },
-      env
-    );
+    // Success message
+    embedOptions.title = `✅ Cache Purge Success for Post ID ${post_id}`;
+    embedOptions.description = `${results.length} URLs were updated after the purge.`;
+    embedOptions.color = 5763719; // Green color
 
     try {
+      const embed = DiscordNotifier.createEmbed(embedOptions, env);
       await DiscordNotifier.send({ embeds: [embed] }, env);
     } catch (error) {
       console.error("Error sending message to Discord:", error);
