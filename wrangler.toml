@@ -9,3 +9,7 @@ workers_dev = true
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1156959534699532400/irw80gel6af4tknGv-_LOzK2A47acZAfnsNxy-GXLQ_ezr83V6r3hWq1XuXXe2eXCnld"
 DISCORD_EMBED_FOOTER_LABEL = "Jogajunto Cloudflare cache monitor"
 DISCORD_EMBED_FOOTER_ICON_URL = "https://jogajunto.co/apple-touch-icon.png"
+
+DISCORD_MAX_RETRIES = "10"
+DISCORD_INITIAL_WAIT_TIME = "1000"
+DISCORD_MULTIPLY_RETRY_AFTER = "2"

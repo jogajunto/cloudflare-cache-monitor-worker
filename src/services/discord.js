@@ -8,9 +8,9 @@ export class DiscordNotifier {
       throw new Error("DISCORD_WEBHOOK_URL não está definida!");
     }
 
-    const maxRetries = 5; // Número máximo de tentativas
+    const maxRetries = parseInt(env.DISCORD_MAX_RETRIES) || 5; // Número máximo de tentativas
     let attempt = 0;
-    const initialWaitTime = 1000; // Tempo inicial de espera (1 segundo)
+    const initialWaitTime = parseInt(env.DISCORD_INITIAL_WAIT_TIME) || 1000; // Tempo inicial de espera (1 segundo)
 
     while (attempt < maxRetries) {
       try {
@@ -32,7 +32,9 @@ export class DiscordNotifier {
 
           // Se o Discord retornar o header 'Retry-After', usamos ele
           if (retryAfter) {
-            waitTime = parseInt(retryAfter) * 10;
+            waitTime =
+              parseInt(retryAfter) *
+              (parseInt(env.DISCORD_MULTIPLY_RETRY_AFTER) || 10);
           } else {
             // Se não houver 'Retry-After', aplicamos o backoff exponencial
             waitTime = initialWaitTime * Math.pow(2, attempt); // Exponencial: 2^attempt
