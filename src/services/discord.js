@@ -32,7 +32,8 @@ export class DiscordNotifier {
 
           // Se o Discord retornar o header 'Retry-After', usamos ele
           if (retryAfter) {
-            waitTime = parseInt(retryAfter) * 1000;
+            // waitTime = parseInt(retryAfter) * 1000;
+            waitTime = parseInt(retryAfter);
           } else {
             // Se não houver 'Retry-After', aplicamos o backoff exponencial
             waitTime = initialWaitTime * Math.pow(2, attempt); // Exponencial: 2^attempt
