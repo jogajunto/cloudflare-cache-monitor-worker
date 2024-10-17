@@ -8,43 +8,58 @@ export class DiscordNotifier {
       throw new Error("DISCORD_WEBHOOK_URL não está definida!");
     }
 
-    const maxRetries = 3;
+    const maxRetries = 5; // Número máximo de tentativas
     let attempt = 0;
+    const initialWaitTime = 1000; // Tempo inicial de espera (1 segundo)
 
     while (attempt < maxRetries) {
-      attempt++;
-      const response = await fetch(DISCORD_WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-      });
+      try {
+        attempt++;
+        const response = await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(message),
+        });
 
-      if (response.ok) {
-        return response;
-      } else if (response.status === 429) {
-        // Rate limit excedido
-        const retryAfter = response.headers.get("Retry-After");
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000; // Tempo em milissegundos
+        if (response.ok) {
+          return response; // Sucesso
+        } else if (response.status === 429) {
+          // Rate limit excedido
+          const retryAfter = response.headers.get("Retry-After");
+          let waitTime;
 
-        console.warn(
-          `Rate limit excedido. Tentativa ${attempt} de ${maxRetries}. Aguardando ${waitTime}ms antes de tentar novamente.`
-        );
+          // Se o Discord retornar o header 'Retry-After', usamos ele
+          if (retryAfter) {
+            waitTime = parseInt(retryAfter) * 1000;
+          } else {
+            // Se não houver 'Retry-After', aplicamos o backoff exponencial
+            waitTime = initialWaitTime * Math.pow(2, attempt); // Exponencial: 2^attempt
+          }
 
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      } else {
-        // Outro erro
-        const errorText = await response.text();
-        throw new Error(
-          `Erro ao enviar mensagem para o Discord: ${response.status} ${response.statusText} - ${errorText}`
-        );
+          console.warn(
+            `Rate limit excedido. Tentativa ${attempt} de ${maxRetries}. Aguardando ${waitTime}ms antes de tentar novamente.`
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        } else {
+          // Outros erros
+          const errorText = await response.text();
+          throw new Error(
+            `Erro ao enviar mensagem para o Discord: ${response.status} ${response.statusText} - ${errorText}`
+          );
+        }
+      } catch (error) {
+        console.error(`Erro na tentativa ${attempt}:`, error);
+
+        if (attempt >= maxRetries) {
+          throw new Error(
+            `Falha ao enviar mensagem para o Discord após ${maxRetries} tentativas.`
+          );
+        }
       }
     }
-
-    throw new Error(
-      `Falha ao enviar mensagem para o Discord após ${maxRetries} tentativas devido a rate limits.`
-    );
   }
 
   static createEmbed(options, env) {
